@@ -4,6 +4,9 @@ from scripts.obj import Obj
 from scripts.scene import Scene
 from scripts.animatedBg import AnimatedBg
 from scripts.settings import *
+import random
+from scripts.text import Text
+
 
 class Game(Scene):
     def __init__(self):
@@ -14,12 +17,36 @@ class Game(Scene):
 
         self.spaceship = SpaceShip("assets/nave/nave0.png", [600, 600], [self.all_sprites])
 
+        self.tick = 0
+        self.enemy_colision = pygame.sprite.Group()
+        self.pts = 0
+        self.score_text = Text("assets/fonts/airstrike.ttf", 25, "Score: ", "white", [30, 30])
+        self.score_pts = Text("assets/fonts/airstrike.ttf", 25, "0", "white", [130, 30])
+
     def update(self):
         self.bg.update()
         self.spaceship.update()
         self.spaceship.shots.draw(self.display)
         self.spaceship.shots.update()
+        self.spaw_enemy()
+        self.colision()
+        self.score_text.draw()
+        self.score_pts.draw()
         return super().update()
+
+    def colision(self):
+        for shot in self.spaceship.shots:
+            for enemy in self.enemy_colision:
+                if shot.rect.colliderect(enemy.rect):
+                    shot.kill()
+                    enemy.life -= 1
+                    self.pts += 1
+                    self.score_pts.update_text(str(self.pts))
+    def spaw_enemy(self):
+        self.tick += 1
+        if self.tick > 60:
+            self.tick = 0
+            Enemy("assets/nave/enemy0.png", [random.randint(100, 1180), 100], [self.all_sprites, self.enemy_colision])
 
 
 class SpaceShip(Obj):
@@ -28,6 +55,7 @@ class SpaceShip(Obj):
         self.direction = pygame.math.Vector2()
         self.speed = 5
         self.shots = pygame.sprite.Group()
+        self.ticks = 0
 
     def input(self):
 
@@ -51,9 +79,12 @@ class SpaceShip(Obj):
             self.direction.x = 0
 
         if key[pygame.K_SPACE]:
-            Shot("assets/tiros/tiro1.png", [self.rect.x + 30,
-                                            self.rect.y - 20],
-                 [self.shots])
+            self.ticks += 1
+            if self.ticks > 10:
+                self.ticks = 0
+                Shot("assets/tiros/tiro1.png", [self.rect.x + 30,
+                                                self.rect.y - 20],
+                     [self.shots])
     def move(self):
         self.rect.center += self.direction * self.speed
 
@@ -98,3 +129,25 @@ class Shot(Obj):
 
     def pra_direita(self, vel):
         self.rect.x += vel
+
+class Enemy(Obj):
+    def __init__(self, img, pos, *groups):
+        super().__init__(img, pos, *groups)
+
+        self.speed = random.randint(4, 6)
+        self.life = 3
+
+    def destruction(self):
+        if self.life <= 0:
+            self.kill()
+
+    def limits(self):
+        if self.rect.y > HEIGHT + self.image.get_height():
+            self.kill()
+    def move(self):
+        self.rect.y += self.speed
+
+    def update(self):
+        self.destruction()
+        self.limits()
+        self.move()
