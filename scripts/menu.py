@@ -24,3 +24,4 @@ class Menu(Scene):
         self.bg.update()
         self.title.draw()
         self.text_info.drawFade()
+        return super().update()
